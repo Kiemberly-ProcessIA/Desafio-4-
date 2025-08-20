@@ -47,6 +47,11 @@ jobs:
         
     - name: Verificar status
       run: make status
+      
+    - name: Testar API do Google Gemini
+      run: make test-api
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         
     - name: Verificar formatação
       run: make format-check

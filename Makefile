@@ -195,6 +195,59 @@ config: ## ⚙️ Verificar configuração do LLM
 		echo "$(RED)❌ Arquivo config.py não encontrado!$(NC)"; \
 		echo "$(YELLOW)💡 Crie o arquivo com suas credenciais do Google Gemini$(NC)"; \
 	fi
+	@echo "$(YELLOW)🔑 Verificando variável de ambiente...$(NC)"
+	@if [ -z "$$GOOGLE_API_KEY" ]; then \
+		echo "$(RED)❌ GOOGLE_API_KEY não definida como variável de ambiente$(NC)"; \
+	else \
+		if echo "$$GOOGLE_API_KEY" | grep -q "^AIza"; then \
+			echo "$(GREEN)✓ Formato da API key parece correto (AIza...)$(NC)"; \
+		else \
+			echo "$(YELLOW)⚠️ API key não segue o formato padrão do Gemini (deve começar com AIza...)$(NC)"; \
+			echo "$(YELLOW)🔗 Obtenha uma nova em: https://aistudio.google.com/app/apikey$(NC)"; \
+		fi; \
+	fi
+
+test-api: setup ## 🔑 Testar conexão com a API do Google Gemini
+	@echo "$(BLUE)🔑 TESTANDO API DO GOOGLE GEMINI$(NC)"
+	@echo "$(BLUE)================================$(NC)"
+	@if [ -z "$$GOOGLE_API_KEY" ]; then \
+		echo "$(RED)❌ GOOGLE_API_KEY não definida$(NC)"; \
+		echo "$(YELLOW)💡 Configure a variável de ambiente GOOGLE_API_KEY$(NC)"; \
+		echo "$(YELLOW)🔗 Obtenha em: https://aistudio.google.com/app/apikey$(NC)"; \
+		echo ""; \
+		echo "$(BLUE)📋 Exemplo de uso:$(NC)"; \
+		echo "$(YELLOW)export GOOGLE_API_KEY=\"AIza...sua_chave_aqui\"$(NC)"; \
+		echo "$(YELLOW)make test-api$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)🔍 Validando formato da API key...$(NC)"
+	@if echo "$$GOOGLE_API_KEY" | grep -q "^AIza"; then \
+		echo "$(GREEN)✓ Formato correto (AIza...)$(NC)"; \
+	else \
+		echo "$(RED)❌ Formato incorreto! Deve começar com 'AIza'$(NC)"; \
+		echo "$(YELLOW)🔗 Obtenha uma nova em: https://aistudio.google.com/app/apikey$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)🔍 Testando conexão com a API...$(NC)"
+	@cd $(PROJECT_DIR) && $(UV) run python -c "import google.generativeai as genai; import os; genai.configure(api_key=os.getenv('GOOGLE_API_KEY')); model = genai.GenerativeModel('gemini-2.0-flash-001'); response = model.generate_content('Teste de conexão. Responda apenas: API funcionando.'); print('✅ API conectada com sucesso!'); print(f'📝 Resposta: {response.text.strip()}'); print('🎉 Sistema pronto para executar!')" && echo "$(GREEN)✅ Teste concluído com sucesso!$(NC)" || (echo "$(RED)❌ Erro ao conectar com a API$(NC)" && echo "$(YELLOW)💡 Verifique se a API key está correta e ativa$(NC)" && echo "$(YELLOW)🔗 Obtenha uma nova em: https://aistudio.google.com/app/apikey$(NC)")
+
+check-api: ## 🔍 Verificar apenas o formato da API key (sem testar conexão)
+	@echo "$(BLUE)🔍 VERIFICANDO API KEY$(NC)"
+	@echo "$(BLUE)=====================$(NC)"
+	@if [ -z "$$GOOGLE_API_KEY" ]; then \
+		echo "$(RED)❌ GOOGLE_API_KEY não definida$(NC)"; \
+		echo "$(YELLOW)💡 Defina: export GOOGLE_API_KEY=\"sua_chave\"$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)🔍 Chave atual: $$(echo $$GOOGLE_API_KEY | sed 's/\(.\{10\}\).*/\1.../')$(NC)"
+	@if echo "$$GOOGLE_API_KEY" | grep -q "^AIza"; then \
+		echo "$(GREEN)✅ Formato correto para Google Gemini$(NC)"; \
+		echo "$(YELLOW)📏 Tamanho: $$(echo $$GOOGLE_API_KEY | wc -c) caracteres$(NC)"; \
+	else \
+		echo "$(RED)❌ Formato incorreto!$(NC)"; \
+		echo "$(YELLOW)Expected: AIza... (Google AI Studio)$(NC)"; \
+		echo "$(YELLOW)Current:  $$(echo $$GOOGLE_API_KEY | cut -c1-4)... $(NC)"; \
+	fi
 
 # Comando padrão
 .DEFAULT_GOAL := help

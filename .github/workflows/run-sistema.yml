@@ -55,6 +55,11 @@ jobs:
     - name: Verificar status do ambiente
       run: make status
       
+    - name: Testar API do Google Gemini
+      run: make test-api
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      
     - name: Preparar diretório de output
       run: |
         mkdir -p output/logs
