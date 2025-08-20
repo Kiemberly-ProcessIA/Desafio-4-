@@ -133,6 +133,7 @@ class AplicadorExclusoes:
         situacoes_excluidas = self.analise_llm.get("situacoes_excluidas", [])
 
         # Processar cada colaborador
+        excluidos_detalhados = []
         for matricula, colaborador in colaboradores_originais.items():
             cargo = str(colaborador.get("cargo", "")).strip()
             status = str(colaborador.get("status", "")).strip()
@@ -172,6 +173,25 @@ class AplicadorExclusoes:
                 colaborador_log = colaborador.copy()
                 colaborador_log["motivo_exclusao"] = "; ".join(motivo_exclusao)
                 colaborador_log["excluido_em"] = datetime.now().isoformat()
+                # Adicionar ao detalhamento para JSON
+                excluidos_detalhados.append({
+                    "id_funcionario": matricula,
+                    "nome_funcionario": colaborador.get("nome", ""),
+                    "cargo": cargo,
+                    "motivo_exclusao": "; ".join(motivo_exclusao),
+                    "data_exclusao": datetime.now().strftime("%Y-%m-%d")
+                })
+        # Salvar JSON detalhado das exclusões aplicadas
+        try:
+            # Salvar sempre na raiz do projeto/output
+            raiz_projeto = Path(__file__).resolve().parents[2]
+            output_dir = raiz_projeto / "output"
+            output_dir.mkdir(exist_ok=True)
+            with open(output_dir / "exclusoes_aplicadas.json", "w", encoding="utf-8") as f:
+                json.dump({"exclusoes": excluidos_detalhados}, f, ensure_ascii=False, indent=2)
+            logger.info(f"💾 exclusoes_aplicadas.json gerado com {len(excluidos_detalhados)} exclusões detalhadas em {output_dir}")
+        except Exception as e:
+            logger.error(f"❌ Erro ao salvar exclusoes_aplicadas.json: {e}")
 
         # Criar base filtrada
         self.base_filtrada = self.base_original.copy()

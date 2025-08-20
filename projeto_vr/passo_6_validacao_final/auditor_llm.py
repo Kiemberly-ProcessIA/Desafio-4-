@@ -202,6 +202,16 @@ class AuditorLLM:
 
                 logger.info(f"✅ Carregado: {nome_arquivo}")
 
+        # Carregar exclusoes_aplicadas.json (detalhado)
+        exclusoes_path = self.diretorio_output / "exclusoes_aplicadas.json"
+        if exclusoes_path.exists():
+            try:
+                with open(exclusoes_path, "r", encoding="utf-8") as f:
+                    dados_finais["exclusoes_aplicadas"] = json.load(f)
+                logger.info(f"✅ exclusoes_aplicadas.json carregado para auditoria LLM")
+            except Exception as e:
+                logger.error(f"Erro ao carregar exclusoes_aplicadas.json: {e}")
+
         # Verificar arquivo Excel final
         excel_files = list(self.diretorio_output.glob("VR_MENSAL_OPERADORA_*.xlsx"))
         if excel_files:
@@ -218,9 +228,8 @@ class AuditorLLM:
         logger.info("🔍 Iniciando validação de exclusões com LLM")
 
         # Preparar dados para análise
-        exclusoes_aplicadas = dados.get("passo_2-resultado_llm", {}).get(
-            "analise_llm", {}
-        )
+        # Usar exclusoes_aplicadas detalhado se disponível
+        exclusoes_aplicadas = dados.get("exclusoes_aplicadas", {}).get("exclusoes", [])
         relatorio_exclusoes = dados.get("passo_3-relatorio_exclusoes", "")
 
         # Construir prompt para validação
