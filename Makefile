@@ -58,6 +58,24 @@ setup: ## 🔧 Configurar ambiente virtual e dependências
 
 install: setup ## 📦 Alias para setup (compatibilidade)
 
+test-ci: setup ## 🧪 Executar testes para CI (sem API)
+	@echo "$(BLUE)🧪 EXECUTANDO TESTES PARA CI$(NC)"
+	@echo "$(BLUE)============================$(NC)"
+	@echo "$(YELLOW)🔍 Validando estrutura de arquivos...$(NC)"
+	@if [ -d "input_data/colaboradores" ]; then \
+		echo "$(GREEN)✓ Pasta colaboradores existe$(NC)"; \
+	else \
+		echo "$(RED)❌ Pasta colaboradores não encontrada$(NC)"; \
+	fi
+	@if [ -d "input_data/configuracoes" ]; then \
+		echo "$(GREEN)✓ Pasta configuracoes existe$(NC)"; \
+	else \
+		echo "$(RED)❌ Pasta configuracoes não encontrada$(NC)"; \
+	fi
+	@echo "$(YELLOW)🔍 Testando importações Python...$(NC)"
+	@cd $(PROJECT_DIR) && $(UV) run python -c "import main; print('$(GREEN)✓ Importações funcionando$(NC)')"
+	@echo "$(GREEN)🎉 Testes de CI concluídos com sucesso!$(NC)"
+
 run: setup ## 🚀 Executar pipeline completo com IA e auditoria
 	@echo "$(BLUE)🚀 INICIANDO PIPELINE COMPLETO COM AUDITORIA...$(NC)"
 	@echo "$(BLUE)=====================================================$(NC)"

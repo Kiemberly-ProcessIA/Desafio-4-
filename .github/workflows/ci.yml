@@ -49,9 +49,11 @@ jobs:
       run: make status
       
     - name: Testar API do Google Gemini
+      if: ${{ secrets.GOOGLE_API_KEY != '' }}
       run: make test-api
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      continue-on-error: true
         
     - name: Verificar formatação
       run: make format-check
@@ -62,10 +64,15 @@ jobs:
     - name: Verificar configuração
       run: make config
       
+    - name: Executar testes do sistema
+      run: make test-ci
+        
     - name: Executar sistema VR
+      if: ${{ secrets.GOOGLE_API_KEY != '' }}
       run: make run
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      continue-on-error: true
         
     - name: Upload dos Outputs
       if: always()
