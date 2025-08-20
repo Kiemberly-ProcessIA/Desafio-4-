@@ -6,7 +6,7 @@ no formato exato da operadora, seguindo o modelo "VR Mensal 05.2025".
 
 Módulos:
 - analisador_modelo_vr.py: Analisa a planilha modelo para extrair formato
-- validador_operadora.py: Aplica validações conforme aba "validações" 
+- validador_operadora.py: Aplica validações conforme aba "validações"
 - gerador_planilha_final.py: Gera a planilha final para envio
 - orquestrador_passo5.py: Coordena todo o processo de entrega final
 """
@@ -23,12 +23,12 @@ FORMATO_VALOR_OPERADORA = "%.2f"
 
 # Campos obrigatórios para a operadora
 CAMPOS_OBRIGATORIOS_OPERADORA = [
-    'matricula',
-    'nome', 
-    'cpf',
-    'valor_vr',
-    'valor_empresa',
-    'valor_funcionario',
-    'data_inicio_vigencia',
-    'data_fim_vigencia'
+    "matricula",
+    "nome",
+    "cpf",
+    "valor_vr",
+    "valor_empresa",
+    "valor_funcionario",
+    "data_inicio_vigencia",
+    "data_fim_vigencia",
 ]

@@ -87,27 +87,21 @@ pipeline-simples: setup ## 📋 Executar pipeline de 5 passos (sem auditoria)
 
 lint: setup ## 📝 Análise de código (flake8)
 	@echo "$(BLUE)📝 Executando análise de código...$(NC)"
-	@source $(VENV_DIR)/bin/activate && \
-		pip install flake8 || $(UV) pip install flake8
-	@source $(VENV_DIR)/bin/activate && \
-		flake8 $(PROJECT_DIR)/ --max-line-length=100 --ignore=E203,W503 || echo "$(YELLOW)⚠️ Lint com problemas$(NC)"
+	@$(UV) pip install flake8
+	@$(UV) run python -m flake8 $(PROJECT_DIR)/ --max-line-length=100 --ignore=E203,W503 || echo "$(YELLOW)⚠️ Lint com problemas$(NC)"
 
 format: setup ## ✨ Formatar código (black)
 	@echo "$(BLUE)✨ Formatando código...$(NC)"
-	@source $(VENV_DIR)/bin/activate && \
-		pip install black isort || $(UV) pip install black isort
-	@source $(VENV_DIR)/bin/activate && \
-		black $(PROJECT_DIR)/ && \
-		isort $(PROJECT_DIR)/
+	@$(UV) pip install black isort
+	@$(UV) run python -m black $(PROJECT_DIR)/
+	@$(UV) run python -m isort $(PROJECT_DIR)/
 	@echo "$(GREEN)✅ Código formatado$(NC)"
 
 format-check: setup ## 🔍 Verificar formatação (sem alterar)
 	@echo "$(BLUE)🔍 Verificando formatação...$(NC)"
-	@source $(VENV_DIR)/bin/activate && \
-		pip install black isort || $(UV) pip install black isort
-	@source $(VENV_DIR)/bin/activate && \
-		black --check --diff $(PROJECT_DIR)/ && \
-		isort --check-only --diff $(PROJECT_DIR)/ || echo "$(YELLOW)⚠️ Formatação precisa de ajustes$(NC)"
+	@$(UV) pip install black isort
+	@$(UV) run python -m black --check --diff $(PROJECT_DIR)/ || echo "$(YELLOW)⚠️ Black: Formatação precisa de ajustes$(NC)"
+	@$(UV) run python -m isort --check-only --diff $(PROJECT_DIR)/ || echo "$(YELLOW)⚠️ Isort: Formatação precisa de ajustes$(NC)"
 
 debug: setup ## 🐛 Executar pipeline em modo DEBUG (gera JSONs intermediários)
 	@echo "$(BLUE)🐛 Executando em modo DEBUG...$(NC)"

@@ -19,30 +19,35 @@ Componentes:
 
 Arquivos processados:
 - ATIVOS.xlsx (obrigatório)
-- DESLIGADOS.xlsx (obrigatório) 
+- DESLIGADOS.xlsx (obrigatório)
 - FÉRIAS.xlsx (obrigatório)
 - Base dias uteis.xlsx (obrigatório)
 - Base sindicato x valor.xlsx (obrigatório)
 - Arquivos opcionais: ADMISSÃO ABRIL.xlsx, APRENDIZ.xlsx, ESTÁGIO.xlsx, etc.
 """
 
+from .consolidador_json import OrquestradorPasso1
 from .leitor_excel import LeitorExcel
 from .validador_dados import ValidadorDados
-from .consolidador_json import OrquestradorPasso1
 
 __version__ = "1.0.0"
 __all__ = ["LeitorExcel", "ValidadorDados", "OrquestradorPasso1"]
 
+
 # Facilitar importação direta
-def executar_passo1(pasta_colaboradores: str, pasta_configuracoes: str = None, pasta_output: str = "./output"):
+def executar_passo1(
+    pasta_colaboradores: str,
+    pasta_configuracoes: str = None,
+    pasta_output: str = "./output",
+):
     """
     Função de conveniência para executar o Passo 1 completo.
-    
+
     Args:
         pasta_colaboradores: Caminho para pasta com dados de colaboradores
         pasta_configuracoes: Caminho para pasta com configurações (opcional)
         pasta_output: Pasta onde salvar resultados
-    
+
     Returns:
         dict: Resultado da execução com status e detalhes
     """
