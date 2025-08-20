@@ -17,6 +17,12 @@ jobs:
     env:
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     steps:
+    - name: Gerar config.py com a chave do secret
+      run: |
+        echo "# config.py gerado automaticamente pelo GitHub Actions" > config.py
+        echo "GOOGLE_API_KEY = \"$GOOGLE_API_KEY\"" >> config.py
+        echo "NOME_MODELO_LLM = \"gemini-2.0-flash-001\"" >> config.py
+      shell: bash
     - name: Checkout código
       uses: actions/checkout@v4
       
