@@ -186,7 +186,16 @@ class AuditorLLM:
             if caminho.exists():
                 if nome_arquivo.endswith(".json"):
                     with open(caminho, "r", encoding="utf-8") as f:
-                        dados_finais[nome_arquivo.replace(".json", "")] = json.load(f)
+                        conteudo = f.read()
+                        if not conteudo.strip():
+                            logger.error(f"Arquivo JSON vazio: {nome_arquivo}")
+                            dados_finais[nome_arquivo.replace(".json", "")] = {}
+                        else:
+                            try:
+                                dados_finais[nome_arquivo.replace(".json", "")] = json.loads(conteudo)
+                            except Exception as e:
+                                logger.error(f"Erro ao fazer parse do JSON {nome_arquivo}: {e}\nConteúdo lido: {conteudo[:200]}")
+                                dados_finais[nome_arquivo.replace(".json", "")] = {}
                 elif nome_arquivo.endswith(".txt"):
                     with open(caminho, "r", encoding="utf-8") as f:
                         dados_finais[nome_arquivo.replace(".txt", "")] = f.read()
@@ -221,13 +230,17 @@ class AuditorLLM:
 
         try:
             resposta = self.modelo_llm.generate_content(prompt_validacao)
-            resultado_llm = json.loads(
-                resposta.text.strip().replace("```json", "").replace("```", "")
-            )
-
+            resposta_texto = resposta.text.strip() if hasattr(resposta, 'text') else str(resposta)
+            logger.info(f"Resposta LLM (exclusões): {resposta_texto[:300]}")
+            if not resposta_texto:
+                raise ValueError("Resposta da LLM vazia na validação de exclusões.")
+            try:
+                resultado_llm = json.loads(resposta_texto.replace("```json", "").replace("```", ""))
+            except Exception as e:
+                logger.error(f"Erro ao fazer parse do JSON da LLM (exclusões): {e}\nResposta recebida: {resposta_texto}")
+                raise
             logger.info("✅ Validação de exclusões concluída")
             return resultado_llm
-
         except Exception as e:
             logger.error(f"Erro na validação de exclusões: {e}")
             return {"erro": str(e), "conformidade": False}
@@ -254,13 +267,17 @@ class AuditorLLM:
 
         try:
             resposta = self.modelo_llm.generate_content(prompt_calculos)
-            resultado_llm = json.loads(
-                resposta.text.strip().replace("```json", "").replace("```", "")
-            )
-
+            resposta_texto = resposta.text.strip() if hasattr(resposta, 'text') else str(resposta)
+            logger.info(f"Resposta LLM (cálculos): {resposta_texto[:300]}")
+            if not resposta_texto:
+                raise ValueError("Resposta da LLM vazia na validação de cálculos.")
+            try:
+                resultado_llm = json.loads(resposta_texto.replace("```json", "").replace("```", ""))
+            except Exception as e:
+                logger.error(f"Erro ao fazer parse do JSON da LLM (cálculos): {e}\nResposta recebida: {resposta_texto}")
+                raise
             logger.info("✅ Validação de cálculos concluída")
             return resultado_llm
-
         except Exception as e:
             logger.error(f"Erro na validação de cálculos: {e}")
             return {"erro": str(e), "conformidade": False}
@@ -279,13 +296,17 @@ class AuditorLLM:
 
         try:
             resposta = self.modelo_llm.generate_content(prompt_legislacao)
-            resultado_llm = json.loads(
-                resposta.text.strip().replace("```json", "").replace("```", "")
-            )
-
+            resposta_texto = resposta.text.strip() if hasattr(resposta, 'text') else str(resposta)
+            logger.info(f"Resposta LLM (legislação): {resposta_texto[:300]}")
+            if not resposta_texto:
+                raise ValueError("Resposta da LLM vazia na validação de legislação.")
+            try:
+                resultado_llm = json.loads(resposta_texto.replace("```json", "").replace("```", ""))
+            except Exception as e:
+                logger.error(f"Erro ao fazer parse do JSON da LLM (legislação): {e}\nResposta recebida: {resposta_texto}")
+                raise
             logger.info("✅ Validação de legislação concluída")
             return resultado_llm
-
         except Exception as e:
             logger.error(f"Erro na validação de legislação: {e}")
             return {"erro": str(e), "conformidade": False}
