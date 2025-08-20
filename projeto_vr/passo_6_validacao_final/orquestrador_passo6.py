@@ -36,15 +36,12 @@ class OrquestradorPasso6:
         }
 
     def _encontrar_diretorio_output(self) -> Path:
-        """Encontra o diretório output."""
-        current_dir = Path(__file__).parent
-        while current_dir.name != "desafio_4" and current_dir.parent != current_dir:
-            current_dir = current_dir.parent
-
-        output_dir = current_dir / "output"
+        """Garante que o diretório output seja localizado na raiz do projeto, independente do nome do diretório."""
+        # Assume que este arquivo está em projeto_vr/passo_6_validacao_final/
+        raiz_projeto = Path(__file__).resolve().parents[2]
+        output_dir = raiz_projeto / "output"
         if not output_dir.exists():
             raise FileNotFoundError(f"Diretório output não encontrado: {output_dir}")
-
         return output_dir
 
     def executar_passo6_completo(self) -> Dict[str, Any]:
