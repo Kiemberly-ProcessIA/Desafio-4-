@@ -39,11 +39,6 @@ venv/
 ENV/
 env/
 
-# Arquivos de dados sensíveis
-input_data/colaboradores/*.xlsx
-input_data/colaboradores/*.xls
-input_data/colaboradores/*.csv
-
 # Outputs gerados
 output/
 *.log
@@ -65,19 +60,6 @@ Thumbs.db
 *.temp
 temp/
 tmp/
-
-# Notebooks Jupyter
-.ipynb_checkpoints
-
-# Testes
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Documentos sensíveis
-*.pdf
-!regras/*.pdf
 
 # Chaves e certificados
 *.key
