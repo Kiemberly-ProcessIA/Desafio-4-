@@ -1,4 +1,4 @@
-name: CI - Sistema VR
+name: Pipeline Unificado - Sistema VR
 
 on:
   push:
@@ -6,13 +6,23 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente de execução'
+        required: false
+        default: 'producao'
+        type: choice
+        options:
+        - producao
+        - desenvolvimento
+        - debug
 
 env:
   PYTHON_VERSION: '3.11'
 
 jobs:
-  ci-sistema-vr:
-    name: Testes e Validações
+  pipeline-vr:
+    name: Pipeline Completo Sistema VR
     runs-on: ubuntu-latest
     env:
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
@@ -25,12 +35,10 @@ jobs:
       shell: bash
     - name: Checkout código
       uses: actions/checkout@v4
-      
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        
     - name: Cache uv
       uses: actions/cache@v3
       with:
@@ -38,47 +46,37 @@ jobs:
         key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-uv-
-          
     - name: Instalar uv
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        
     - name: Setup ambiente
       run: make install
-        
-    - name: Criar configuração de teste
-      run: |
-        cp config.py.example config.py
-        sed -i 's/SUA_CHAVE_AQUI/FAKE_API_KEY_FOR_TESTING/' config.py
-        
     - name: Verificar status
       run: make status
-      
     - name: Testar API do Google Gemini
       run: make test-api
-      env:
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       continue-on-error: true
-        
     - name: Verificar formatação
       run: make format-check
-        
     - name: Análise de código
       run: make lint
-        
     - name: Verificar configuração
       run: make config
-      
     - name: Executar testes do sistema
       run: make test-ci
-        
-    - name: Executar sistema VR
-      run: make run
+    - name: Executar pipeline completo
+      run: |
+        if [ "${{ github.event.inputs.ambiente }}" = "debug" ]; then
+          make debug
+        elif [ "${{ github.event.inputs.ambiente }}" = "desenvolvimento" ]; then
+          make run
+        else
+          make run
+        fi
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       continue-on-error: true
-        
     - name: Upload dos Outputs
       if: always()
       uses: actions/upload-artifact@v4
@@ -88,7 +86,6 @@ jobs:
           output/
           !output/logs/*.log
         retention-days: 30
-        
     - name: Upload dos Logs
       if: always()
       uses: actions/upload-artifact@v4
@@ -96,7 +93,6 @@ jobs:
         name: sistema-vr-logs-${{ github.run_number }}
         path: output/logs/
         retention-days: 7
-      
     - name: Limpeza final
       if: always()
       run: make clean
