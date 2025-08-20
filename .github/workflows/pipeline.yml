@@ -29,13 +29,6 @@ jobs:
     steps:
     - name: Checkout código
       uses: actions/checkout@v4
-    - name: Gerar config.py com a chave do secret
-      run: |
-        echo "# config.py gerado automaticamente pelo GitHub Actions" > config.py
-        echo "GOOGLE_API_KEY = \"$GOOGLE_API_KEY\"" >> config.py
-        echo "NOME_MODELO_LLM = \"gemini-2.0-flash-001\"" >> config.py
-        cat config.py
-      shell: bash
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -57,6 +50,9 @@ jobs:
       run: make test-api
     - name: Executar pipeline completo
       run: |
+        echo "# config.py gerado automaticamente pelo GitHub Actions" > config.py
+        echo "GOOGLE_API_KEY = \"$GOOGLE_API_KEY\"" >> config.py
+        echo "NOME_MODELO_LLM = \"gemini-2.0-flash-001\"" >> config.py
         cat config.py
         make run
       env:

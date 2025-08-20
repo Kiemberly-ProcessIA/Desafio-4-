@@ -40,7 +40,7 @@ ENV/
 env/
 
 # Outputs gerados
-output/
+output/*
 *.log
 logs/
 
