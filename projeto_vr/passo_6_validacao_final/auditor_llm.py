@@ -35,10 +35,20 @@ logger = get_logger(__name__)
 class AuditorLLM:
     """Auditor inteligente que usa LLM para validação final do projeto."""
 
+
     def __init__(self):
         """Inicializa o auditor LLM."""
-        self.projeto_root = self._encontrar_projeto_root()
-        self.diretorio_output = self.projeto_root / "output"
+        self.projeto_root = self._encontrar_projeto_root_flexivel()
+
+        # Permitir sobrescrever o diretório de output via variável de ambiente
+        output_env = os.environ.get("VR_OUTPUT_DIR")
+        if output_env:
+            self.diretorio_output = Path(output_env).resolve()
+            logger.info(f"🔎 Usando diretório de output da variável de ambiente VR_OUTPUT_DIR: {self.diretorio_output}")
+        else:
+            self.diretorio_output = self.projeto_root / "output"
+            logger.info(f"🔎 Usando diretório de output padrão: {self.diretorio_output}")
+
         self.diretorio_regras = self.projeto_root / "regras"
         self.diretorio_input = self.projeto_root / "input_data"
 
@@ -61,6 +71,21 @@ class AuditorLLM:
         }
 
         logger.info("🔧 Auditor LLM inicializado com Gemini Flash 2.0")
+
+    def _encontrar_projeto_root_flexivel(self) -> Path:
+        """Encontra o diretório raiz do projeto de forma flexível (aceita variações de nome)."""
+        current_dir = Path(__file__).parent.resolve()
+        candidatos = [
+            "desafio_4", "Desafio-4-", "Desafio_4", "desafio-4", "Desafio-4", "Desafio4", "desafio4"
+        ]
+        while current_dir.parent != current_dir:
+            nome = current_dir.name.lower().replace("-", "_")
+            if any(nome == c.lower().replace("-", "_") for c in candidatos):
+                logger.info(f"🎯 Diretório root do projeto identificado: {current_dir}")
+                return current_dir
+            current_dir = current_dir.parent
+        logger.warning("⚠️ Diretório root do projeto não identificado de forma flexível. Usando diretório do script.")
+        return Path(__file__).parent.resolve()
 
     def _encontrar_projeto_root(self) -> Path:
         """Encontra o diretório raiz do projeto."""
