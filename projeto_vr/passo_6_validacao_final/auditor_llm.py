@@ -228,8 +228,18 @@ class AuditorLLM:
         logger.info("🔍 Iniciando validação de exclusões com LLM")
 
         # Preparar dados para análise
-        # Usar exclusoes_aplicadas detalhado se disponível
-        exclusoes_aplicadas = dados.get("exclusoes_aplicadas", {}).get("exclusoes", [])
+        exclusoes_aplicadas_dict = dados.get("exclusoes_aplicadas", {})
+        exclusoes_aplicadas = []
+        if isinstance(exclusoes_aplicadas_dict, dict):
+            exclusoes_aplicadas = exclusoes_aplicadas_dict.get("exclusoes", [])
+        elif isinstance(exclusoes_aplicadas_dict, list):
+            exclusoes_aplicadas = exclusoes_aplicadas_dict
+        else:
+            logger.error("Formato inesperado em exclusoes_aplicadas.json: %s", type(exclusoes_aplicadas_dict))
+
+        if not exclusoes_aplicadas:
+            logger.error("Atenção: Nenhuma exclusão encontrada em exclusoes_aplicadas.json! O campo 'exclusoes' está vazio ou ausente. O prompt da LLM será enviado com lista vazia, o que pode gerar score 0% de conformidade.")
+
         relatorio_exclusoes = dados.get("passo_3-relatorio_exclusoes", "")
 
         # Construir prompt para validação
