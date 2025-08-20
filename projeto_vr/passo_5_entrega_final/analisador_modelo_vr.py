@@ -29,15 +29,12 @@ class AnalisadorModeloVR:
         self.validacoes_modelo = None
 
     def _encontrar_diretorio_input(self) -> Path:
-        """Encontra o diretório input_data."""
-        current_dir = Path(__file__).parent
-        while current_dir.name != "desafio_4" and current_dir.parent != current_dir:
-            current_dir = current_dir.parent
-
-        input_dir = current_dir / "input_data"
+        """Garante que o diretório input_data seja localizado na raiz do projeto, independente do nome do diretório."""
+        # Assume que este arquivo está em projeto_vr/passo_5_entrega_final/
+        raiz_projeto = Path(__file__).resolve().parents[2]
+        input_dir = raiz_projeto / "input_data"
         if not input_dir.exists():
             raise FileNotFoundError(f"Diretório input_data não encontrado: {input_dir}")
-
         return input_dir
 
     def _encontrar_arquivo_modelo(self) -> Path:
