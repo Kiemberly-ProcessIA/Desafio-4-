@@ -30,14 +30,11 @@ class GeradorPlanilhaFinal:
         self.custo_funcionario_percentual = 0.20
 
     def _encontrar_diretorio_output(self) -> Path:
-        """Encontra o diretório output."""
-        current_dir = Path(__file__).parent
-        while current_dir.name != "desafio_4" and current_dir.parent != current_dir:
-            current_dir = current_dir.parent
-
-        output_dir = current_dir / "output"
+        """Garante que o diretório output seja criado na raiz do projeto, independente do nome do diretório."""
+        # Assume que este arquivo está em projeto_vr/passo_5_entrega_final/
+        raiz_projeto = Path(__file__).resolve().parents[2]
+        output_dir = raiz_projeto / "output"
         output_dir.mkdir(exist_ok=True)
-
         return output_dir
 
     def gerar_planilha_operadora(
