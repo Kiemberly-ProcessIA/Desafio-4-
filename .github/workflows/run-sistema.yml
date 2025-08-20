@@ -1,0 +1,157 @@
+name: Executar Sistema VR
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente de execução'
+        required: true
+        default: 'producao'
+        type: choice
+        options:
+        - producao
+        - desenvolvimento
+        - debug
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  executar-sistema-vr:
+    name: Executar Sistema VR
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache uv
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+          
+    - name: Instalar uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: Setup ambiente
+      run: make install
+        
+    - name: Criar configuração
+      run: |
+        if [ ! -f config.py ]; then
+          cp config.py.example config.py
+        fi
+        
+    - name: Verificar status do ambiente
+      run: make status
+      
+    - name: Preparar diretório de output
+      run: |
+        mkdir -p output/logs
+        echo "Diretório output preparado em: $(pwd)/output"
+        ls -la output/ || echo "Diretório ainda vazio"
+      
+    - name: Executar Sistema VR - ${{ github.event.inputs.ambiente }}
+      run: |
+        case "${{ github.event.inputs.ambiente }}" in
+          "debug")
+            make debug
+            ;;
+          "desenvolvimento")
+            make run
+            ;;
+          "producao")
+            make run
+            ;;
+          *)
+            make run
+            ;;
+        esac
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        
+    - name: Verificar outputs gerados
+      run: |
+        echo "=== Estrutura do diretório output ==="
+        ls -la output/ || echo "Diretório output não encontrado"
+        echo ""
+        echo "=== Logs gerados ==="
+        ls -la output/logs/ || echo "Diretório de logs não encontrado"
+        echo ""
+        echo "=== Tamanho dos arquivos ==="
+        du -sh output/* || echo "Nenhum arquivo encontrado"
+        
+    - name: Upload Resultados Principais
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vr-resultados-${{ github.event.inputs.ambiente }}-${{ github.run_number }}
+        path: |
+          output/*.json
+          output/*.xlsx
+          output/*.txt
+        retention-days: 90
+        
+    - name: Upload Logs Detalhados
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vr-logs-${{ github.event.inputs.ambiente }}-${{ github.run_number }}
+        path: |
+          output/logs/
+        retention-days: 30
+        
+    - name: Upload Relatórios Específicos
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vr-relatorios-${{ github.event.inputs.ambiente }}-${{ github.run_number }}
+        path: |
+          output/*relatorio*.txt
+          output/*auditoria*.json
+          output/*resumo*.json
+        retention-days: 60
+        
+    - name: Resumo da Execução
+      if: always()
+      run: |
+        echo "## 📊 Resumo da Execução do Sistema VR" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Ambiente:** ${{ github.event.inputs.ambiente }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Data/Hora:** $(date '+%d/%m/%Y às %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "output" ]; then
+          echo "### 📁 Arquivos Gerados:" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          ls -la output/ >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 📈 Estatísticas:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total de arquivos:** $(find output/ -type f | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tamanho total:** $(du -sh output/ | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "output/passo_4-resumo_executivo.json" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Resumo Executivo Encontrado" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Processamento concluído com sucesso!" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚠️ **Atenção:** Diretório output não foi encontrado!" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Limpeza final
+      if: always()
+      run: make clean

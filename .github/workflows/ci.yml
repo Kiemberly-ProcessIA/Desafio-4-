@@ -57,6 +57,29 @@ jobs:
     - name: Verificar configuração
       run: make config
       
+    - name: Executar sistema VR
+      run: make run
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        
+    - name: Upload dos Outputs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sistema-vr-outputs-${{ github.run_number }}
+        path: |
+          output/
+          !output/logs/*.log
+        retention-days: 30
+        
+    - name: Upload dos Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sistema-vr-logs-${{ github.run_number }}
+        path: output/logs/
+        retention-days: 7
+      
     - name: Limpeza final
       if: always()
       run: make clean
