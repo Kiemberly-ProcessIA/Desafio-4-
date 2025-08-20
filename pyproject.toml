@@ -1,0 +1,44 @@
+[project]
+name = "sistema-vr-ia"
+version = "1.0.0"
+description = "Sistema de Cálculo de Vale Refeição com IA"
+authors = [
+    {name = "Equipe I2A2"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "pytesseract",
+    "PyPDF2", 
+    "langchain_google_genai",
+    "langchain",
+    "openpyxl",
+    "pdf2image",
+    "Pillow",
+    "google-generativeai",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8", 
+    "isort",
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.flake8]
+max-line-length = 100
+ignore = ["E203", "W503"]
+exclude = [".git", "__pycache__", "build", "dist", ".venv"]

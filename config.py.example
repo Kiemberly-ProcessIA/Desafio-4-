@@ -1,0 +1,16 @@
+# config.py.example
+
+# IMPORTANTE: Copie este arquivo para config.py e substitua pelos valores reais
+# Este arquivo serve como template - nunca coloque API keys reais aqui
+
+# API Key do Google Gemini (obrigatório)
+# Obtenha em: https://ai.google.dev/
+GOOGLE_API_KEY = "SUA_CHAVE_AQUI"
+
+# Nome do modelo LLM para usar
+NOME_MODELO_LLM = "gemini-2.0-flash-001"
+
+# Configurações opcionais
+DEBUG = False
+MAX_TOKENS = 8000
+TEMPERATURA = 0.1

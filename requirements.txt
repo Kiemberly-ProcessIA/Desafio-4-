@@ -1,0 +1,9 @@
+pandas
+pytesseract
+PyPDF2
+langchain_google_genai
+langchain
+openpyxl
+pdf2image
+Pillow
+google-generativeai

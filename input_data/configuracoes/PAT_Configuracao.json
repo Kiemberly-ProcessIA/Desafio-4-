@@ -1,0 +1,24 @@
+{
+  "pat_configuracao": {
+    "empresa_aderida_pat": true,
+    "numero_registro_pat": "PAT-2025-0001",
+    "data_adesao": "2024-01-01",
+    "modalidade": "Própria",
+    "valor_max_deducao_por_colaborador": 400.00,
+    "percentual_empresa": 90,
+    "percentual_colaborador": 10,
+    "beneficio_fiscal": true,
+    "observacoes": "Empresa aderida ao PAT conforme Lei 6.321/1976 e Decreto 10.854/2021"
+  },
+  "valores_refeicao_padrao": {
+    "valor_unitario_base": 35.00,
+    "valor_maximo_pat": 400.00,
+    "dedutibilidade_fiscal": true
+  },
+  "criterios_elegibilidade": {
+    "tempo_minimo_empresa_dias": 90,
+    "jornada_minima_horas": 4,
+    "tipos_contrato_incluidos": ["CLT", "Efetivo", "Temporário"],
+    "tipos_contrato_excluidos": ["Estagiário", "Aprendiz", "Terceirizado"]
+  }
+}

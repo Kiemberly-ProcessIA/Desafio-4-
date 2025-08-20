@@ -1,0 +1,62 @@
+name: CI - Sistema VR
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  ci-sistema-vr:
+    name: Testes e Validações
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache uv
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+          
+    - name: Instalar uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        
+    - name: Setup ambiente
+      run: make install
+        
+    - name: Criar configuração de teste
+      run: |
+        cp config.py.example config.py
+        sed -i 's/SUA_CHAVE_AQUI/FAKE_API_KEY_FOR_TESTING/' config.py
+        
+    - name: Verificar status
+      run: make status
+        
+    - name: Verificar formatação
+      run: make format-check
+        
+    - name: Análise de código
+      run: make lint
+        
+    - name: Verificar configuração
+      run: make config
+      
+    - name: Limpeza final
+      if: always()
+      run: make clean
