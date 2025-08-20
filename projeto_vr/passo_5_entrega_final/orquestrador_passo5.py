@@ -42,15 +42,13 @@ class OrquestradorPasso5:
         }
 
     def _encontrar_diretorio_output(self) -> Path:
-        """Encontra o diretório output."""
+        """Encontra (ou cria) o diretório output."""
         current_dir = Path(__file__).parent
         while current_dir.name != "desafio_4" and current_dir.parent != current_dir:
             current_dir = current_dir.parent
 
         output_dir = current_dir / "output"
-        if not output_dir.exists():
-            raise FileNotFoundError(f"Diretório output não encontrado: {output_dir}")
-
+        output_dir.mkdir(exist_ok=True)
         return output_dir
 
     def executar_passo5(self, arquivo_entrada: Optional[str] = None) -> Dict[str, Any]:
