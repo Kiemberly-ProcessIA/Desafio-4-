@@ -27,14 +27,15 @@ jobs:
     env:
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
     - name: Gerar config.py com a chave do secret
       run: |
         echo "# config.py gerado automaticamente pelo GitHub Actions" > config.py
         echo "GOOGLE_API_KEY = \"$GOOGLE_API_KEY\"" >> config.py
         echo "NOME_MODELO_LLM = \"gemini-2.0-flash-001\"" >> config.py
+        cat config.py
       shell: bash
-    - name: Checkout código
-      uses: actions/checkout@v4
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -51,29 +52,13 @@ jobs:
         curl -LsSf https://astral.sh/uv/install.sh | sh
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
     - name: Setup ambiente
-      run: make install
-    - name: Verificar status
-      run: make status
+      run: make install 
     - name: Testar API do Google Gemini
       run: make test-api
-      continue-on-error: true
-    - name: Verificar formatação
-      run: make format-check
-    - name: Análise de código
-      run: make lint
-    - name: Verificar configuração
-      run: make config
-    - name: Executar testes do sistema
-      run: make test-ci
     - name: Executar pipeline completo
       run: |
-        if [ "${{ github.event.inputs.ambiente }}" = "debug" ]; then
-          make debug
-        elif [ "${{ github.event.inputs.ambiente }}" = "desenvolvimento" ]; then
-          make run
-        else
-          make run
-        fi
+        cat config.py
+        make run
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       continue-on-error: true
@@ -93,6 +78,3 @@ jobs:
         name: sistema-vr-logs-${{ github.run_number }}
         path: output/logs/
         retention-days: 7
-    - name: Limpeza final
-      if: always()
-      run: make clean
