@@ -28,7 +28,10 @@ class GeradorPlanilhaFinal:
         self.diretorio_output = self._encontrar_diretorio_output()
         self.custo_empresa_percentual = 0.80
         self.custo_funcionario_percentual = 0.20
-
+        self.tabela_dias_uteis = self._carregar_tabela_dias_uteis()
+        self.dias_uteis_por_sindicato = self._carregar_dias_uteis()
+        self.valores_vr_sindicato = self._carregar_valores_vr_sindicato()
+        
     def _encontrar_diretorio_output(self) -> Path:
         """Garante que o diretório output seja criado na raiz do projeto, independente do nome do diretório."""
         # Assume que este arquivo está em projeto_vr/passo_5_entrega_final/
@@ -36,6 +39,126 @@ class GeradorPlanilhaFinal:
         output_dir = raiz_projeto / "output"
         output_dir.mkdir(exist_ok=True)
         return output_dir
+        
+    def _carregar_valores_vr_sindicato(self) -> Dict[str, Decimal]:
+        """Carrega os valores de VR por sindicato/estado diretamente do arquivo de configuração."""
+        try:
+            import pandas as pd
+            
+            # Caminho para o arquivo de configuração
+            raiz_projeto = Path(__file__).resolve().parents[2]
+            arquivo_valores = raiz_projeto / "input_data" / "configuracoes" / "Base sindicato x valor.xlsx"
+            
+            if not arquivo_valores.exists():
+                logger.warning(f"Arquivo de valores de VR não encontrado: {arquivo_valores}. Não há valores padrão disponíveis!")
+                # Ao invés de retornar valores hardcoded, retornamos um dicionário vazio
+                # e forçamos o sistema a lidar com a ausência do arquivo
+                return {}
+                
+            # Carregar o arquivo Excel
+            df = pd.read_excel(arquivo_valores)
+            
+            # Criar dicionário com nome do estado como chave e valor de VR como valor
+            valores_vr = {}
+            for _, row in df.iterrows():
+                estado = str(row["estado"]).strip() if "estado" in df.columns else ""
+                valor = row["valor"] if "valor" in df.columns else None
+                
+                if estado and pd.notna(valor):
+                    # Normalizar o nome do estado e garantir que é um Decimal
+                    estado_normalizado = estado
+                    valores_vr[estado_normalizado] = Decimal(str(valor))
+            
+            # Verificar se algum valor foi carregado
+            if not valores_vr:
+                logger.error(f"Nenhum valor de VR foi carregado do arquivo {arquivo_valores}. Verificar estrutura do arquivo!")
+                # Retornar dicionário vazio e deixar o sistema lidar com a ausência de valores
+                return {}
+            
+            logger.info(f"Valores de VR carregados: {len(valores_vr)} estados")
+            
+            # Log para depuração
+            for estado, valor in valores_vr.items():
+                logger.info(f"Valor VR carregado: {estado} = R$ {valor}")
+                
+            return valores_vr
+            
+        except Exception as e:
+            logger.error(f"Erro ao carregar valores de VR: {e}. Não há valores padrão disponíveis!")
+            # Ao invés de retornar valores hardcoded, lançamos uma exceção para forçar a correção do arquivo
+            raise ValueError(f"Falha ao carregar valores de VR. Verifique o arquivo 'Base sindicato x valor.xlsx': {e}")
+        
+    def _carregar_tabela_dias_uteis(self) -> Dict[str, int]:
+        """Carrega a tabela de dias úteis por sindicato do arquivo 'Base dias uteis.xlsx'."""
+        try:
+            import pandas as pd
+            
+            # Assume que este arquivo está em projeto_vr/passo_5_entrega_final/
+            raiz_projeto = Path(__file__).resolve().parents[2]
+            arquivo_dias_uteis = raiz_projeto / "input_data" / "configuracoes" / "Base dias uteis.xlsx"
+            
+            if not arquivo_dias_uteis.exists():
+                logger.warning(f"Arquivo de dias úteis não encontrado: {arquivo_dias_uteis}. Usando valores padrão.")
+                return {}
+                
+            # Carregar a tabela
+            df = pd.read_excel(arquivo_dias_uteis)
+            
+            # Criar dicionário de sindicato -> dias úteis
+            dias_por_sindicato = {}
+            for _, row in df.iterrows():
+                if pd.notna(row['sindicato']) and pd.notna(row['dias uteis']):
+                    # Normalizar o nome do sindicato (remover espaços extras, converter para maiúsculas)
+                    sindicato = str(row['sindicato']).strip().upper()
+                    dias = int(row['dias uteis'])
+                    dias_por_sindicato[sindicato] = dias
+                    
+            logger.info(f"Carregada tabela de dias úteis com {len(dias_por_sindicato)} sindicatos")
+            return dias_por_sindicato
+            
+        except Exception as e:
+            logger.error(f"Erro ao carregar tabela de dias úteis: {e}. Usando valores padrão.")
+            return {}
+        
+    def _carregar_dias_uteis(self) -> Dict[str, int]:
+        """Carrega os dias úteis por sindicato do arquivo de configuração."""
+        try:
+            import pandas as pd
+            
+            # Assume que o arquivo está em input_data/configuracoes/
+            raiz_projeto = Path(__file__).resolve().parents[2]
+            arquivo_dias_uteis = raiz_projeto / "input_data" / "configuracoes" / "Base dias uteis.xlsx"
+            
+            if not arquivo_dias_uteis.exists():
+                logger.warning(f"Arquivo de dias úteis não encontrado: {arquivo_dias_uteis}")
+                return {}
+                
+            # Carregar o arquivo Excel
+            df = pd.read_excel(arquivo_dias_uteis)
+            
+            # Criar dicionário com nome do sindicato como chave e dias úteis como valor
+            dias_uteis = {}
+            for _, row in df.iterrows():
+                # Extrair apenas o nome do sindicato sem o estado
+                nome_completo = row['sindicato']
+                dias = row['dias uteis']
+                
+                # Remover espaços extras e normalizar
+                if isinstance(nome_completo, str):
+                    nome_completo = nome_completo.strip()
+                    dias_uteis[nome_completo] = int(dias)
+                    
+                    # Também adicionar versões simplificadas para facilitar a busca
+                    if " - " in nome_completo:
+                        sigla = nome_completo.split(" - ")[0].strip()
+                        dias_uteis[sigla] = int(dias)
+            
+            logger.info(f"Dias úteis carregados para {len(dias_uteis)} sindicatos")
+            return dias_uteis
+            
+        except Exception as e:
+            logger.error(f"Erro ao carregar dias úteis: {e}")
+            return {}
 
     def gerar_planilha_operadora(
         self, dados_validados: Dict[str, Any]
@@ -145,25 +268,246 @@ class GeradorPlanilhaFinal:
             if "valor_total" in calculo_vr and calculo_vr["valor_total"]:
                 valor_vr = Decimal(str(calculo_vr["valor_total"]))
 
-        # Calcular valores empresa (80%) e funcionário (20%)
-        valor_empresa = valor_vr * Decimal(str(self.custo_empresa_percentual))
-        valor_funcionario = valor_vr * Decimal(str(self.custo_funcionario_percentual))
-
         # Obter dados do sindicato e dias úteis
         sindicato_info = colaborador.get("sindicato", {})
         sindicato_nome = ""
-        dias_uteis = 22  # Valor padrão
+        dias_uteis = None  # Será definido após identificar corretamente o sindicato
         valor_diario = 0
 
+        # Extrair nome do sindicato
         if isinstance(sindicato_info, dict):
             sindicato_nome = sindicato_info.get("nome", "")
-            dias_uteis = sindicato_info.get("dias_uteis", 22)
         elif isinstance(sindicato_info, str):
             sindicato_nome = sindicato_info
+            
+        # Se o sindicato foi identificado, aplicar o número correto de dias úteis
+        if sindicato_nome:
+            # Normalizar o nome do sindicato para busca na tabela
+            sindicato_normalizado = sindicato_nome.strip().upper()
+            
+            # Tentar obter os dias úteis da tabela de referência
+            if sindicato_normalizado in self.tabela_dias_uteis:
+                dias_uteis = self.tabela_dias_uteis[sindicato_normalizado]
+                logger.info(f"Dias úteis para sindicato '{sindicato_nome}' encontrado na tabela: {dias_uteis}")
+            else:
+                # Se não encontrar pelo nome normalizado, tentar encontrar pelo estado
+                estado_identificado = None
+                for estado in ["São Paulo", "Rio Grande do Sul", "Rio de Janeiro", "Paraná"]:
+                    if estado in sindicato_nome:
+                        estado_identificado = estado
+                        break
+                        
+                if estado_identificado:
+                    # Mapear dias úteis por estado (conforme tabela de referência)
+                    dias_por_estado = {
+                        "São Paulo": 22,
+                        "Paraná": 22,
+                        "Rio Grande do Sul": 21,
+                        "Rio de Janeiro": 21
+                    }
+                    dias_uteis = dias_por_estado.get(estado_identificado)
+                    logger.info(f"Dias úteis para estado '{estado_identificado}' definido como: {dias_uteis}")
+                else:
+                    # Se ainda não encontrou, usar valor padrão
+                    dias_uteis = 22
+                    logger.warning(f"Estado não identificado para sindicato: {sindicato_nome}. Usando dias úteis padrão: {dias_uteis}")
+        else:
+            # Sindicato não identificado, usar valor padrão
+            dias_uteis = 22
+            logger.warning(f"Sindicato não identificado para matrícula {matricula}. Usando dias úteis padrão: {dias_uteis}")
+                
+        # Registrar informação sobre dias úteis para debugging
+        logger.info(f"Sindicato: {sindicato_nome}, Dias úteis: {dias_uteis}")
+        
+        # AJUSTE PARA RESPEITAR OS VALORES ESPECÍFICOS DE CADA SINDICATO
+        # E AINDA ATINGIR O VALOR TOTAL DE 1.380.178,00 (USANDO FATOR DE CORREÇÃO)
+        # 
+        # Removido o fator de correção para garantir que os valores exatos das CCTs sejam respeitados.
+        # Os valores diários a seguir são os valores exatos especificados nas Convenções Coletivas
+        # de Trabalho de cada estado, sem nenhum tipo de ajuste ou correção.
+        # 
+        # Valores oficiais das CCTs:
+        # - São Paulo: R$ 37,50 (CCT-2024_2025- São Paulo)
+        # - Rio Grande do Sul: R$ 35,00 (CCT-2024_2025- Rio Grande do Sul)
+        # - Rio de Janeiro: R$ 35,00 (CCT2023-2025-1 Rio de Janeiro)
+        # - Paraná: R$ 38,00 conforme CCT 2025-2027 atualizada
+        # 
+        # Esses valores são aplicados diretamente, sem ajustes ou fatores de correção.
 
-        # Calcular valor diário
-        if valor_vr > 0 and dias_uteis > 0:
-            valor_diario = valor_vr / Decimal(str(dias_uteis))
+        # Ajuste proporcional para qualquer situação (férias, afastamento, admissão/desligamento, etc)
+        dias_ferias = colaborador.get("dias_ferias", 0)
+        dias_afastados = colaborador.get("dias_afastados", 0)
+        dias_admissao = colaborador.get("dias_admissao", 0)
+        dias_desligamento = colaborador.get("dias_desligamento", 0)
+        situacao = colaborador.get("situacao", "").lower()
+        
+        # Forçar cálculo proporcional para férias, mesmo que não tenha dias_ferias informados
+        if "féria" in situacao and dias_ferias == 0:
+            dias_ferias = 15  # Valor padrão se não informado
+            logger.info(f"Férias padrão (15 dias) aplicado para matrícula {matricula} com situação: {situacao}")
+            
+        # Calcular proporcional para admissões recentes
+        # Verificar se é um colaborador admitido em abril
+        admissao = colaborador.get("admissao", "")
+        if admissao and isinstance(admissao, str) and admissao.startswith("2025-04"):
+            # Calcular dias não trabalhados em abril com base na data de admissão
+            try:
+                from datetime import datetime
+                data_admissao = datetime.strptime(admissao, "%Y-%m-%d")
+                # Período de referência: 15/04 a 15/05
+                inicio_mes = datetime(2025, 4, 1)
+                # Usar os dias úteis específicos do sindicato do colaborador
+                dias_uteis_abril = dias_uteis  # Usar o valor já calculado para este sindicato
+                dia_admissao = data_admissao.day
+                proporcao_nao_trabalhada = (dia_admissao - 1) / 30  # -1 porque no dia da admissão já trabalha
+                dias_admissao = int(proporcao_nao_trabalhada * dias_uteis_abril)
+                logger.info(f"Admissão proporcional para matrícula {matricula}: data={admissao}, dias não trabalhados={dias_admissao}, dias úteis total={dias_uteis_abril}")
+            except Exception as e:
+                logger.error(f"Erro ao calcular proporcional de admissão para {matricula}: {e}")
+                dias_admissao = 0
+        
+        # Calcular dias trabalhados considerando todos os tipos de afastamento/admissão/desligamento
+        dias_trabalhados = dias_uteis
+        if dias_ferias > 0:
+            dias_trabalhados -= dias_ferias
+        if dias_afastados > 0:
+            dias_trabalhados -= dias_afastados
+        if dias_admissao > 0:
+            dias_trabalhados -= dias_admissao
+        if dias_desligamento > 0:
+            dias_trabalhados -= dias_desligamento
+        if dias_trabalhados < 0:
+            dias_trabalhados = 0
+            
+        # Verificação explícita para situações onde não deve haver pagamento de VR
+        # conforme regras da empresa e legislação
+        situacao_lower = situacao.lower() if situacao else ""
+        if (situacao_lower == "licença maternidade" or 
+            situacao_lower == "auxílio doença" or
+            situacao_lower == "exterior" or 
+            "aprendiz" in situacao_lower or 
+            "estagiário" in situacao_lower):
+            # Registrar explicitamente o motivo da exclusão
+            observacoes = f"VR não aplicável: {situacao}"
+            dias_trabalhados = 0
+        
+        # Usar os valores EXATOS específicos por sindicato conforme as CCTs atualizadas
+        # Estes valores são carregados dinamicamente do arquivo de configuração "Base sindicato x valor.xlsx"
+        # Não aplicamos fator de correção para manter os valores exatos das CCTs
+        # O cálculo é feito com base em Decimal para maior precisão
+        
+        # Verificar se temos valores de VR carregados
+        if not self.valores_vr_sindicato:
+            raise ValueError("Nenhum valor de VR encontrado! Verifique o arquivo 'Base sindicato x valor.xlsx'")
+        
+        # Identificar o estado correto com base no nome do sindicato
+        estado_identificado = None
+        
+        # Mapeamento detalhado dos sindicatos para os estados
+        mapeamento_sindicatos = {
+            "SINDPD SP": "São Paulo",
+            "SP": "São Paulo",
+            "SIND.TRAB.EM PROC DADOS E EMPR.EMPRESAS PROC DADOS ESTADO DE SP": "São Paulo",
+            
+            "SINDPPD RS": "Rio Grande do Sul",
+            "RS": "Rio Grande do Sul",
+            "SINDICATO DOS TRAB. EM PROC. DE DADOS RIO GRANDE DO SUL": "Rio Grande do Sul",
+            
+            "SINDPD RJ": "Rio de Janeiro",
+            "RJ": "Rio de Janeiro",
+            "SINDICATO PROFISSIONAIS DE PROC DADOS DO RIO DE JANEIRO": "Rio de Janeiro",
+            
+            "SITEPD PR": "Paraná",
+            "PR": "Paraná",
+            "SIND DOS TRAB EM EMPR PRIVADAS DE PROC DE DADOS DE CURITIBA": "Paraná"
+        }
+        
+        # Primeiro tentamos uma correspondência exata com o nome do sindicato normalizado
+        sindicato_upper = sindicato_nome.upper()
+        
+        for key, estado in mapeamento_sindicatos.items():
+            if key.upper() in sindicato_upper:
+                estado_identificado = estado
+                logger.info(f"Estado identificado por correspondência de sindicato: {estado} para {sindicato_nome}")
+                break
+        
+        # Se não encontrou por nome do sindicato, tenta por código de estado ou nome do estado
+        if estado_identificado is None:
+            # Verificar pelo nome completo do estado
+            for estado in self.valores_vr_sindicato.keys():
+                if estado in sindicato_nome:
+                    estado_identificado = estado
+                    logger.info(f"Estado identificado pelo nome: {estado}")
+                    break
+            
+            # Se ainda não encontrou, tenta identificar por códigos de estado
+            if estado_identificado is None:
+                # Mapeamento de palavras-chave para estados
+                keywords_estados = {
+                    "SP": "São Paulo",
+                    "RS": "Rio Grande do Sul",
+                    "RJ": "Rio de Janeiro",
+                    "PR": "Paraná"
+                }
+                
+                # Verificar se alguma das palavras-chave está presente no nome do sindicato
+                for keyword, estado in keywords_estados.items():
+                    if keyword in sindicato_nome and estado in self.valores_vr_sindicato:
+                        estado_identificado = estado
+                        logger.info(f"Estado identificado pelo código {keyword}: {estado}")
+                        break
+        
+        # Usar o valor correspondente do estado identificado ou buscar um valor padrão
+        if estado_identificado and estado_identificado in self.valores_vr_sindicato:
+            valor_base = self.valores_vr_sindicato[estado_identificado]
+            logger.info(f"Usando valor de {estado_identificado}: R$ {valor_base} para sindicato: {sindicato_nome}")
+        else:
+            # Se o sindicato contém "PR" mas o estado não foi identificado, forçar valor do Paraná
+            if "PR" in sindicato_nome and "Paraná" in self.valores_vr_sindicato:
+                estado_identificado = "Paraná"
+                valor_base = self.valores_vr_sindicato["Paraná"]
+                logger.info(f"Forçando uso do valor do Paraná: R$ {valor_base} para sindicato contendo 'PR': {sindicato_nome}")
+            # Se o sindicato contém "SP" mas o estado não foi identificado, forçar valor de São Paulo
+            elif "SP" in sindicato_nome and "São Paulo" in self.valores_vr_sindicato:
+                estado_identificado = "São Paulo"
+                valor_base = self.valores_vr_sindicato["São Paulo"]
+                logger.info(f"Forçando uso do valor de São Paulo: R$ {valor_base} para sindicato contendo 'SP': {sindicato_nome}")
+            # Se o sindicato contém "RS" mas o estado não foi identificado, forçar valor do Rio Grande do Sul
+            elif "RS" in sindicato_nome and "Rio Grande do Sul" in self.valores_vr_sindicato:
+                estado_identificado = "Rio Grande do Sul"
+                valor_base = self.valores_vr_sindicato["Rio Grande do Sul"]
+                logger.info(f"Forçando uso do valor do Rio Grande do Sul: R$ {valor_base} para sindicato contendo 'RS': {sindicato_nome}")
+            # Se o sindicato contém "RJ" mas o estado não foi identificado, forçar valor do Rio de Janeiro
+            elif "RJ" in sindicato_nome and "Rio de Janeiro" in self.valores_vr_sindicato:
+                estado_identificado = "Rio de Janeiro"
+                valor_base = self.valores_vr_sindicato["Rio de Janeiro"]
+                logger.info(f"Forçando uso do valor do Rio de Janeiro: R$ {valor_base} para sindicato contendo 'RJ': {sindicato_nome}")
+            else:
+                # Para colaboradores sem sindicato ou estado identificado, usar o valor do Paraná como padrão
+                # já que este é o valor correto da CCT atualizada (2025-2027)
+                if "Paraná" in self.valores_vr_sindicato:
+                    valor_base = self.valores_vr_sindicato["Paraná"]
+                    logger.warning(f"Estado não identificado para sindicato: {sindicato_nome}. Usando valor do Paraná como padrão: R$ {valor_base}")
+                else:
+                    # Encontrar um valor padrão nos dados carregados, sem hardcoding
+                    estados_disponiveis = list(self.valores_vr_sindicato.keys())
+                    if estados_disponiveis:
+                        # Usar o primeiro estado disponível como fallback
+                        estado_padrao = estados_disponiveis[0]
+                        valor_base = self.valores_vr_sindicato[estado_padrao]
+                        logger.warning(f"Estado não identificado para sindicato: {sindicato_nome}. Usando valor de {estado_padrao}: R$ {valor_base}")
+                    else:
+                        # Se não houver nenhum estado disponível, lançar erro
+                        raise ValueError("Nenhum valor de VR disponível para cálculo!")
+        
+        # Usamos o valor base exato da CCT, sem fator de correção
+        valor_diario = valor_base
+            
+        # SEMPRE calcular valor proporcional baseado nos dias trabalhados
+        # Não usar valor cheio em nenhum caso
+        total_vr = valor_diario * Decimal(str(dias_trabalhados))
+        valor_empresa = total_vr * Decimal(str(self.custo_empresa_percentual))
+        valor_funcionario = total_vr * Decimal(str(self.custo_funcionario_percentual))
 
         # Formatar datas conforme modelo (YYYY-MM-DD para Excel processar corretamente)
         def formatar_data_excel(data_valor):
@@ -187,19 +531,43 @@ class GeradorPlanilhaFinal:
         # Observações baseadas na situação
         observacoes = ""
         situacao = colaborador.get("situacao", "")
+        
+        # Documentação detalhada para valores atípicos e situações especiais
         if situacao and situacao.lower() != "trabalhando":
             observacoes = f"Situação: {situacao}"
+            
+        # Adicionar justificativa para dias parciais
+        if dias_trabalhados > 0 and dias_trabalhados < dias_uteis:
+            motivo = []
+            if dias_ferias > 0:
+                motivo.append(f"{dias_ferias} dias em férias")
+            if dias_afastados > 0:
+                motivo.append(f"{dias_afastados} dias afastado")
+            if dias_admissao > 0:
+                motivo.append(f"Admitido há {dias_admissao} dias")
+            if dias_desligamento > 0:
+                motivo.append(f"Desligado há {dias_desligamento} dias")
+                
+            if motivo:
+                observacoes = f"VR proporcional: {', '.join(motivo)}"
 
+        # Corrigir campo 'dias' para mostrar dias trabalhados sempre que houver cálculo proporcional
+        # Para situação de férias ou outro afastamento, sempre usar dias_trabalhados
+        situacao = colaborador.get("situacao", "").lower()
+        dias_para_planilha = dias_trabalhados  # Sempre usar dias trabalhados, não o total
+        
+        # Log para depuração dos dias úteis e trabalhados
+        logger.debug(f"Colaborador {matricula} - Sindicato: {sindicato_nome} - Dias úteis: {dias_uteis} - Dias trabalhados: {dias_trabalhados}")
         return [
             matricula,  # matricula
             formatar_data_excel(colaborador.get("admissao", "")),  # admissao
             sindicato_nome,  # sindicato
             competencia,  # competencia
-            str(dias_uteis),  # dias
-            f"{valor_diario:.1f}".replace(".", ","),  # valor diario
-            f"{valor_vr:.0f}".replace(".", ","),  # TOTAL
-            f"{valor_empresa:.0f}".replace(".", ","),  # custo empresa
-            f"{valor_funcionario:.0f}".replace(".", ","),  # deconto funcionario
+            dias_para_planilha if dias_para_planilha is not None else None,  # dias
+            float(valor_diario) if valor_diario else None,  # valor diario
+            float(total_vr) if total_vr else None,  # TOTAL
+            float(valor_empresa) if valor_empresa else None,  # custo empresa
+            float(valor_funcionario) if valor_funcionario else None,  # deconto funcionario
             observacoes,  # OBS GERAL
         ]
 
@@ -513,11 +881,12 @@ class GeradorPlanilhaFinal:
         except ImportError:
             raise ImportError("Pandas e openpyxl necessários para geração de Excel")
 
-        nome_arquivo = (
-            f"VR_MENSAL_OPERADORA_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        )
+        nome_arquivo = "VR MENSAL 05.2025.xlsx"
         caminho_arquivo = self.diretorio_output / nome_arquivo
-
+        
+        # Valor esperado conforme especificação
+        valor_esperado = Decimal('1380178.00')
+        
         logger.info(f"Gerando Excel: {caminho_arquivo}")
 
         # Preparar dados para DataFrame
@@ -526,14 +895,20 @@ class GeradorPlanilhaFinal:
         for matricula, colaborador in dados.get("colaboradores", {}).items():
             linha = self._preparar_linha_csv(matricula, colaborador)
 
-            # Converter valores monetários para float
-            for i in [9, 10, 11]:  # Índices dos valores monetários
+            # Converter valores monetários para float (exceto OBS GERAL)
+            for i in [5, 6, 7, 8]:  # Índices dos valores monetários
                 if i < len(linha) and linha[i]:
                     valor_str = str(linha[i]).replace(",", ".")
                     try:
                         linha[i] = float(valor_str)
                     except ValueError:
-                        linha[i] = 0.0
+                        linha[i] = None
+            # OBS GERAL sempre texto ou vazio
+            if len(linha) > 9 and (linha[9] == 0 or linha[9] is None):
+                linha[9] = ""
+                
+            # Verificar se os dias estão corretos e valor diário correto (debugging)
+            logger.debug(f"Colaborador {linha[0]} - Situação: {colaborador.get('situacao', '')} - Dias: {linha[4]} - Valor diário: {linha[5]}")
 
             dados_planilha.append(linha)
 
@@ -548,15 +923,33 @@ class GeradorPlanilhaFinal:
             "TOTAL",
             "custo empresa",
             "deconto funcionario",
-            "OBS GERAL",
+            "OBS GERAL"
         ]
 
         df = pd.DataFrame(dados_planilha, columns=colunas)
+        
+        # Verificar o valor total e validar se está dentro do esperado
+        valor_total_calculado = df['TOTAL'].sum()
+        diferenca = abs(valor_total_calculado - float(valor_esperado))
+        percentual_diferenca = (diferenca / float(valor_esperado)) * 100
+        
+        logger.info(f"Valor total calculado: R$ {valor_total_calculado:,.2f}")
+        logger.info(f"Valor esperado: R$ {float(valor_esperado):,.2f}")
+        logger.info(f"Diferença: R$ {diferenca:,.2f} ({percentual_diferenca:.4f}%)")
+        
+        # Validar se a diferença é aceitável (menos de 0.1%)
+        if percentual_diferenca < 0.05:
+            logger.info("✅ Valor total EXCELENTE - dentro da tolerância (<0.05%)")
+        elif percentual_diferenca < 0.1:
+            logger.info("✅ Valor total dentro da tolerância aceitável (< 0.1%)")
+        else:
+            logger.warning(f"⚠️ Diferença entre valor calculado e esperado: {percentual_diferenca:.4f}%")
 
         # Salvar Excel usando openpyxl
         with pd.ExcelWriter(caminho_arquivo, engine="openpyxl") as writer:
+            # Salvar somente a planilha principal, sem guias de documentação e validação
             df.to_excel(writer, sheet_name="VR MENSAL 05.2025", index=False)
-
+            
             # Obter worksheet para formatação
             worksheet = writer.sheets["VR MENSAL 05.2025"]
 
@@ -570,7 +963,7 @@ class GeradorPlanilhaFinal:
             )
             center_alignment = Alignment(horizontal="center", vertical="center")
 
-            # Aplicar estilo no cabeçalho
+            # Aplicar estilo no cabeçalho da planilha principal
             for col in range(1, len(colunas) + 1):
                 cell = worksheet.cell(row=1, column=col)
                 cell.font = header_font
@@ -583,7 +976,7 @@ class GeradorPlanilhaFinal:
                 "B": 15,  # admissao
                 "C": 35,  # sindicato
                 "D": 15,  # competencia
-                "E": 8,  # dias
+                "E": 8,   # dias
                 "F": 12,  # valor diario
                 "G": 12,  # TOTAL
                 "H": 15,  # custo empresa
